@@ -6,11 +6,12 @@ import torch
 import re
 from transformers import AutoModel, BertTokenizerFast, TFBertModel, AutoTokenizer, BertTokenizer, AdamW
 import torch.nn as nn
+import numpy as np
 
 ###############
 # Load model
 ###############
-url='https://drive.google.com/file/d/1cT8q8-rU-5T7TEKAB5oGkIAhS6dOD3O9/view?usp=sharing'
+url='https://drive.google.com/file/d/1---aMQrVKhsNvOWSvfveOICcrp21xUSa/view?usp=sharing'
 url='https://drive.google.com/uc?id=' + url.split('/')[-2]
 model_file_name = 'best_model.pt'
 
@@ -18,6 +19,28 @@ if not os.path.exists(model_file_name):
     gdown.download(url, model_file_name, quiet=False)
 else:
     print('Model already downloaded')
+
+class BERT_model(nn.Module):
+    def __init__(self, bert):
+      super(BERT_model, self).__init__()
+      self.bert = bert
+      self.dropout = nn.Dropout(0.1)
+      self.relu =  nn.ReLU()
+      self.fc1 = nn.Linear(768,512)             # dense layer 1
+      self.fc2 = nn.Linear(512,2)               # dense layer 2
+      self.softmax = nn.LogSoftmax(dim=1)
+
+    def forward(self, sent_id, mask):
+      cls_hs = self.bert(sent_id, attention_mask=mask)['pooler_output']
+
+      x = self.fc1(cls_hs)
+      x = self.relu(x)
+      x = self.dropout(x)
+      x = self.fc2(x)
+      x = self.softmax(x)
+      return x
+
+model = torch.load('best_model.pt')
 
 ###############
 # Preprocess helpers
@@ -57,8 +80,14 @@ def tokenize(data_to_tokenize):
 def prediction(text):
     text = preprocess_text(text)
     tokenized_text = tokenize([text])
+    text_seq = torch.tensor(tokenized_text['input_ids'])
+    text_mask = torch.tensor(tokenized_text['attention_mask'])
 
-    result = 0
+    with torch.no_grad():
+      preds = model(text_seq, text_mask)
+    preds = np.argmax(preds, axis = 1)
+    result = preds[0]
+
     result_to_text = 'Falsa' if result == 0 else 'Verdadera'
     return f"La noticia es {result_to_text}"
 
