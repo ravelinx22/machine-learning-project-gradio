@@ -1,1 +1,16 @@
 huggingface_hub==0.22.2
+gradio
+gdown
+jupyterlab
+notebook
+pandas
+ydata-profiling
+ipywidgets
+transformers==4.17
+torch
+scikit-learn
+tensorflow==2.15.1
+keras==2.15.0
+tf-keras
+tensorflow_hub
+mlxtend
